@@ -1,7 +1,6 @@
 #include "pch.h"
-#include "assets.h"
-#include "utils/dxutils.h"
-#include "public/texture.h"
+#include "Assets.h"
+#include <dxutils.h>
 
 void Assets::AddUIImageAsset_v10(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntries, const char* assetPath, rapidjson::Value& mapEntry)
 {
@@ -55,7 +54,7 @@ void Assets::AddUIImageAsset_v10(CPakFile* pak, std::vector<RPakAssetEntry>* ass
     }
 
     // get the info for the ui atlas image
-    std::string sAtlasFilePath = pak->GetAssetPath() + mapEntry["atlas"].GetStdString() + ".dds";
+    std::string sAtlasFilePath = g_sAssetsDir + mapEntry["atlas"].GetStdString() + ".dds";
     std::string sAtlasAssetName = mapEntry["atlas"].GetStdString() + ".rpak";
     uint64_t atlasGuid = RTech::StringToGuid(sAtlasAssetName.c_str());
 
@@ -133,7 +132,7 @@ void Assets::AddUIImageAsset_v10(CPakFile* pak, std::vector<RPakAssetEntry>* ass
         float startY = it["posY"].GetFloat() / pHdr->height;
         float endY = (it["posY"].GetFloat() + it["height"].GetFloat()) / pHdr->height;
 
-        // this doesn't affect legion but does affect game?
+        // this doesnt affect legion but does affect game?
         //uiio.InitUIImageOffset(startX, startY, endX, endY);
         tiBuf.write(uiio);
     }

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "assets.h"
+#include "Assets.h"
 
 // only tested for apex, should be identical on tf2
 void Assets::AddPatchAsset(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntries, const char* assetPath, rapidjson::Value& mapEntry)

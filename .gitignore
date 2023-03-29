@@ -21,7 +21,6 @@
 x64/
 x86/
 bld/
-[Bb]uild/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
@@ -337,3 +336,6 @@ ASALocalRun/
 # Generated Assets (we really don't want these to end up on git)
 *.rpak
 *.starpak
+build/RePak.tlog/CL.command.1.tlog
+
+build/RePak.tlog/

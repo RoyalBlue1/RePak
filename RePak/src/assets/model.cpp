@@ -1,7 +1,5 @@
 #include "pch.h"
-#include "assets.h"
-#include "public/studio.h"
-#include "public/material.h"
+#include "Assets.h"
 
 void Assets::AddModelAsset_stub(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntries, const char* assetPath, rapidjson::Value& mapEntry)
 {
@@ -16,7 +14,7 @@ void Assets::AddModelAsset_v9(CPakFile* pak, std::vector<RPakAssetEntry>* assetE
 
     ModelHeader* pHdr = new ModelHeader();
 
-    std::string rmdlFilePath = pak->GetAssetPath() + sAssetName;
+    std::string rmdlFilePath = g_sAssetsDir + sAssetName;
 
     // VG is a "fake" file extension that's used to store model streaming data (name came from the magic '0tVG')
     // this data is a combined mutated version of the data from .vtx and .vvd in regular source models
@@ -40,6 +38,20 @@ void Assets::AddModelAsset_v9(CPakFile* pak, std::vector<RPakAssetEntry>* assetE
 
     if (mdlhdr.version != 54)
         Error("invalid version for model asset '%s'. expected %i, found %i\n", sAssetName.c_str(), 54, mdlhdr.version);
+
+    uint32_t fileNameDataSize = sAssetName.length() + 1;
+
+    char* pDataBuf = new char[fileNameDataSize + mdlhdr.length];
+
+    // write the model file path into the data buffer
+    snprintf(pDataBuf, fileNameDataSize, "%s", sAssetName.c_str());
+
+    // go back to the beginning of the file to read all the data
+    rmdlInput.seek(0);
+
+    // write the skeleton data into the data buffer
+    rmdlInput.getReader()->read(pDataBuf + fileNameDataSize, mdlhdr.length);
+    rmdlInput.close();
 
     ///--------------------
     // Add VG data
@@ -127,7 +139,7 @@ void Assets::AddModelAsset_v9(CPakFile* pak, std::vector<RPakAssetEntry>* assetE
     //
     // Starpak
     //
-    std::string starpakPath = pak->GetPrimaryStarpakPath();
+    std::string starpakPath = pak->primaryStarpakPath;
 
     if (mapEntry.HasMember("starpakPath") && mapEntry["starpakPath"].IsString())
         starpakPath = mapEntry["starpakPath"].GetStdString();
@@ -137,47 +149,17 @@ void Assets::AddModelAsset_v9(CPakFile* pak, std::vector<RPakAssetEntry>* assetE
 
     pak->AddStarpakReference(starpakPath);
 
-    StreamableDataEntry de{ 0, vgFileSize, (uint8_t*)pVGBuf };
+    SRPkDataEntry de{ 0, vgFileSize, (uint8_t*)pVGBuf};
     de = pak->AddStarpakDataEntry(de);
 
     pHdr->alignedStreamingSize = de.m_nDataSize;
-
-    size_t extraDataSize = 0;
-
-    if (mdlhdr.flags & 0x10) // STATIC_PROP
-    {
-        extraDataSize = vgFileSize;
-    }
-
-    uint32_t fileNameDataSize = sAssetName.length() + 1;
-
-    char* pDataBuf = new char[fileNameDataSize + mdlhdr.length + extraDataSize];
-
-    // write the model file path into the data buffer
-    snprintf(pDataBuf + mdlhdr.length, fileNameDataSize, "%s", sAssetName.c_str());
-
-    // copy rmdl data into data buffer
-    {
-        // go back to the beginning of the file to read all the data
-        rmdlInput.seek(0);
-
-        // write the skeleton data into the data buffer
-        rmdlInput.getReader()->read(pDataBuf, mdlhdr.length);
-        rmdlInput.close();
-    }
-
-    // copy static prop data into data buffer (if needed)
-    if (mdlhdr.flags & 0x10) // STATIC_PROP
-    {
-        memcpy_s(pDataBuf + fileNameDataSize + mdlhdr.length, vgFileSize, de.m_nDataPtr, vgFileSize);
-    }
 
     // Segments
     // asset header
     _vseginfo_t subhdrinfo = pak->CreateNewSegment(sizeof(ModelHeader), SF_HEAD, 16);
 
     // data segment
-    _vseginfo_t dataseginfo = pak->CreateNewSegment(mdlhdr.length + fileNameDataSize + extraDataSize, SF_CPU, 64);
+    _vseginfo_t dataseginfo = pak->CreateNewSegment(mdlhdr.length + fileNameDataSize, SF_CPU, 64);
 
     // .phy
     _vseginfo_t physeginfo;
@@ -189,18 +171,12 @@ void Assets::AddModelAsset_v9(CPakFile* pak, std::vector<RPakAssetEntry>* assetE
     if (pAnimRigBuf)
         arigseginfo = pak->CreateNewSegment(pHdr->animRigCount * 8, SF_CPU, 64);
 
-    pHdr->pName = { dataseginfo.index, (unsigned)mdlhdr.length };
+    pHdr->pName = { dataseginfo.index, 0 };
 
-    pHdr->pRMDL = { dataseginfo.index, 0 };
+    pHdr->pRMDL = { dataseginfo.index, fileNameDataSize };
 
     pak->AddPointer(subhdrinfo.index, offsetof(ModelHeader, pRMDL));
     pak->AddPointer(subhdrinfo.index, offsetof(ModelHeader, pName));
-
-    if (mdlhdr.flags & 0x10) // STATIC_PROP
-    {
-        pHdr->pStaticPropVtxCache = { dataseginfo.index, fileNameDataSize + mdlhdr.length };
-        pak->AddPointer(subhdrinfo.index, offsetof(ModelHeader, pStaticPropVtxCache));
-    }
 
     std::vector<RPakGuidDescriptor> guids{};
 
@@ -222,14 +198,14 @@ void Assets::AddModelAsset_v9(CPakFile* pak, std::vector<RPakAssetEntry>* assetE
     }
 
     rmem dataBuf(pDataBuf);
-    dataBuf.seek(mdlhdr.textureindex, rseekdir::beg);
+    dataBuf.seek(fileNameDataSize + mdlhdr.textureindex, rseekdir::beg);
 
     bool hasMaterialOverrides = mapEntry.HasMember("materials");
 
     // handle material overrides register all material guids
     for (int i = 0; i < mdlhdr.numtextures; ++i)
     {
-        dataBuf.seek(mdlhdr.textureindex + (i * sizeof(materialref_t)), rseekdir::beg);
+        dataBuf.seek(fileNameDataSize + mdlhdr.textureindex + (i * sizeof(materialref_t)), rseekdir::beg);
 
         materialref_t* material = dataBuf.get<materialref_t>();
 
@@ -237,7 +213,7 @@ void Assets::AddModelAsset_v9(CPakFile* pak, std::vector<RPakAssetEntry>* assetE
         if (hasMaterialOverrides && mapEntry["materials"].GetArray().Size() > i)
         {
             auto& matlEntry = mapEntry["materials"].GetArray()[i];
-
+            
             // if string, calculate the guid
             if (matlEntry.IsString())
             {
@@ -249,7 +225,7 @@ void Assets::AddModelAsset_v9(CPakFile* pak, std::vector<RPakAssetEntry>* assetE
                 material->guid = matlEntry.GetUint64();
         }
 
-        if (material->guid != 0)
+        if(material->guid != 0)
             pak->AddGuidDescriptor(&guids, dataseginfo.index, dataBuf.getPosition() + offsetof(materialref_t, guid));
 
         RPakAssetEntry* asset = pak->GetAssetByGuid(material->guid);

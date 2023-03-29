@@ -11,17 +11,14 @@
 #include <cstdint>
 #include <string>
 #include <fstream>
-#include <regex>
 #include <rapidcsv/rapidcsv.h>
 #include <rapidjson/document.h>
 #include <rapidjson/istreamwrapper.h>
 
-#include "common/decls.h"
-#include "common/const.h"
+#include "rmem.h"
+#include "rpak.h"
+#include "rtech.h"
 
-#include "logic/rmem.h"
-#include "logic/rtech.h"
-
-#include "utils/binaryio.h"
-#include "utils/utils.h"
-#include "utils/logger.h"
+#include "BinaryIO.h"
+#include "RePak.h"
+#include "Utils.h"

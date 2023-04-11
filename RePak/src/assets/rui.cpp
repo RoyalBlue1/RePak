@@ -41,18 +41,18 @@ struct unknown8dataProto
 {
     uint16_t type;
     uint16_t fontIndex;
-    ProtoValue Val_2;
-    ProtoValue Val_4;
-    ProtoValue Val_6;
-    ProtoValue Val_8;//probably alpha
-    ProtoValue Val_A;
-    ProtoValue Val_C;
-    ProtoValue Val_E;
-    ProtoValue Val_10;
-    ProtoValue Val_12;
-    ProtoValue Val_14;
-    ProtoValue Val_16;
-    ProtoValue Val_18;
+    ProtoValue color0_red;
+    ProtoValue color0_green;
+    ProtoValue color0_blue;
+    ProtoValue color0_alpha;//probably alpha
+    ProtoValue color1_red;
+    ProtoValue color1_green;
+    ProtoValue color1_blue;
+    ProtoValue color1_alpha;
+    ProtoValue color2_red;
+    ProtoValue color2_green;
+    ProtoValue color2_blue;
+    ProtoValue color2_alpha;
     ProtoValue Val_1A;
     ProtoValue Val_1C;
     ProtoValue Val_1E;
@@ -258,8 +258,10 @@ ProtoValue getJsonFloatValue(rapidjson::Value& jsonObj,std::string valName, floa
         
 
     val.val.asFloat = defaultVal;
-    if (jsonObj.HasMember(valName.c_str()) && jsonObj[valName.c_str()].IsFloat()) {
-        val.val.asFloat =  jsonObj[valName.c_str()].GetFloat();
+    if (jsonObj.HasMember(valName.c_str())){
+        if (jsonObj[valName.c_str()].IsNumber()) {
+            val.val.asFloat = jsonObj[valName.c_str()].GetFloat();
+        }
         
     }
     setConstOffets(constants,val);
@@ -289,7 +291,7 @@ ProtoValue getJsonStringValue(rapidjson::Value& jsonObj,std::string valName,std:
     ProtoValue val;
     val.type = TYPE_STRING;
     if (jsonObj.HasMember((valName + "_name").c_str()) && jsonObj[(valName + "_name").c_str()].IsString()) {
-        val.name = jsonObj[(valName+ "_name").c_str()].GetString();
+        val.name = jsonObj[(valName+ "_name").c_str()].GetStdString();
         val.flags |= PVF_RUNTIMEVAL;
         return val;
     }
@@ -297,7 +299,7 @@ ProtoValue getJsonStringValue(rapidjson::Value& jsonObj,std::string valName,std:
 
     val.stringVal = defaultVal;
     if (jsonObj.HasMember(valName.c_str()) && jsonObj[valName.c_str()].IsInt()) {
-        val.stringVal =  jsonObj[valName.c_str()].GetString();
+        val.stringVal =  jsonObj[valName.c_str()].GetStdString();
         constSize += val.stringVal.size() +1;
     }
     setConstOffets(constants,val);
@@ -325,6 +327,10 @@ void setDynamicOffset(std::vector<RuiArgumentProto>& arguments,std::vector<Dynam
         }
     }
     DynamicValueProto dynamicVal;
+    if (val.type == TYPE_STRING || val.type == TYPE_ASSET || val.type == TYPE_UIHANDLE) {
+        if(dynamicValuesSize%8)
+            dynamicValuesSize += 8 - ( dynamicValuesSize % 8 );
+    }
     dynamicVal.name = val.name;
     dynamicVal.type = val.type;
     dynamicVal.offset = dynamicValuesSize + valuesSize;
@@ -349,7 +355,7 @@ uint32_t calculateShortHash(const char* name,uint32_t mul,uint32_t add){
     //posistion in array = (cluster.argIndex + (hash & (cluster.argCount -1)));
 }
 
-void calculateHashVars(RuiArgCluster& cluster, std::vector<RuiArgumentProto> args) {
+void calculateHashVars(RuiArgCluster& cluster, std::vector<RuiArgumentProto> &args) {
     for (int add = 0; add < 256; add++) {
         for (int mul = 1; mul < 256; mul++) {
             bool success = true;
@@ -430,46 +436,91 @@ void Assets::AddRuiAsset(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntrie
     std::vector<transformProto> transformPrototypes;
     std::vector<DynamicValueProto> dynamicValuePrototypes;
 
-
+    ProtoValue zeroVal;
+    zeroVal.type = TYPE_FLOAT;
+    zeroVal.val.asFloat = 0;
+    setConstOffets(constValueProtos,zeroVal);
     
-    for (auto& it : mapEntry["unk8"].GetArray()) {
+    for (auto& it : mapEntry["styleDescriptors"].GetArray()) {
         unknown8dataProto unk;
         //memset(&unk,0,sizeof(unk));
         unk.type = it["type"].GetInt();
-        unk.Val_2 = getJsonFloatValue(it,"val_2",1,constValueProtos);
-        unk.Val_4 = getJsonFloatValue(it,"val_4",1,constValueProtos);
-        unk.Val_6 = getJsonFloatValue(it,"val_6",1,constValueProtos);
-        unk.Val_8 = getJsonFloatValue(it,"val_8",1,constValueProtos);
-        unk.Val_A = getJsonFloatValue(it,"val_A",0,constValueProtos);
-        unk.Val_C = getJsonFloatValue(it,"val_C",0,constValueProtos);
-        unk.Val_E = getJsonFloatValue(it,"val_E",0,constValueProtos);
-        unk.Val_10 = getJsonFloatValue(it,"val_10",0,constValueProtos);
-        unk.Val_12 = getJsonFloatValue(it,"val_12",0,constValueProtos);
-        unk.Val_14 = getJsonFloatValue(it,"val_14",0,constValueProtos);
-        unk.Val_16 = getJsonFloatValue(it,"val_16",0,constValueProtos);
-        unk.Val_18 = getJsonFloatValue(it,"val_18",0,constValueProtos);
-        unk.Val_1A = getJsonFloatValue(it,"val_1A",0,constValueProtos);
-        unk.Val_1C = getJsonFloatValue( it,"val_1C",0,constValueProtos);
-        if(unk.type == 0) { //is font
+        switch(unk.type){
+        case 0://font
+            unk.color0_red = getJsonFloatValue(it,"color0Red",1,constValueProtos);
+            unk.color0_green = getJsonFloatValue(it,"color0Green",1,constValueProtos);
+            unk.color0_blue = getJsonFloatValue(it,"color0Blue",1,constValueProtos);
+            unk.color0_alpha = getJsonFloatValue(it,"color0Alpha",1,constValueProtos);
+            unk.color1_red = getJsonFloatValue(it,"color1Red",0,constValueProtos);
+            unk.color1_green = getJsonFloatValue(it,"color1Green",0,constValueProtos);
+            unk.color1_blue = getJsonFloatValue(it,"color1Blue",0,constValueProtos);
+            unk.color1_alpha = getJsonFloatValue(it,"color1Alpha",0,constValueProtos);
+            unk.color2_red = getJsonFloatValue(it,"color2Red",0,constValueProtos);
+            unk.color2_green = getJsonFloatValue(it,"color2Green",0,constValueProtos);
+            unk.color2_blue = getJsonFloatValue(it,"color2Blue",0,constValueProtos);
+            unk.color2_alpha = getJsonFloatValue(it,"color2Alpha",0,constValueProtos);
+            unk.Val_1A = getJsonFloatValue(it,"val_1A",1,constValueProtos);
+            unk.Val_1C = getJsonFloatValue( it,"val_1C",1,constValueProtos);
             unk.fontIndex = it["fontIndex"].GetInt();
             unk.Val_20 = getJsonFloatValue(it,"val_20",0,constValueProtos);
             unk.Val_22 = getJsonFloatValue(it,"val_22",0,constValueProtos);
             unk.Val_24 = getJsonFloatValue(it,"val_24",0,constValueProtos);
             unk.Val_26 = getJsonFloatValue(it,"val_26",0,constValueProtos);
-            unk.Val_28 = getJsonFloatValue(it,"val_28",0,constValueProtos);
-            unk.Val_2A = getJsonFloatValue(it,"val_2A",0,constValueProtos); //might not be used
+            unk.Val_28 = getJsonFloatValue(it,"textSize",10,constValueProtos);//text size
+            unk.Val_2A = getJsonFloatValue(it,"stretchX",1,constValueProtos);//x stretch
+            unk.Val_2C = getJsonFloatValue(it,"backgroundSize",0,constValueProtos);//background size
+            unk.Val_2E = getJsonFloatValue(it,"boltness",0,constValueProtos);//boltness
+            unk.Val_30 = getJsonFloatValue(it,"blur",0,constValueProtos);//blur
+            break;
+        case 1:
+            unk.color0_red = getJsonFloatValue(it,"val_2",1,constValueProtos);
+            unk.color0_green = getJsonFloatValue(it,"val_4",1,constValueProtos);
+            unk.color0_blue = getJsonFloatValue(it,"val_6",1,constValueProtos);
+            unk.color0_alpha = getJsonFloatValue(it,"val_8",1,constValueProtos);
+            unk.color1_red = getJsonFloatValue(it,"val_A",0,constValueProtos);
+            unk.color1_green = getJsonFloatValue(it,"val_C",0,constValueProtos);
+            unk.color1_blue = getJsonFloatValue(it,"val_E",0,constValueProtos);
+            unk.color1_alpha = getJsonFloatValue(it,"val_10",1,constValueProtos);
+            unk.color2_red = getJsonFloatValue(it,"val_12",1,constValueProtos);
+            unk.color2_green = getJsonFloatValue(it,"val_14",1,constValueProtos);
+            unk.color2_blue = getJsonFloatValue(it,"val_16",1,constValueProtos);
+            unk.color2_alpha = getJsonFloatValue(it,"val_18",1,constValueProtos);
+            unk.Val_1A = getJsonFloatValue(it,"val_1A",0,constValueProtos);
+            unk.Val_1C = getJsonFloatValue( it,"val_1C",0,constValueProtos);
+            unk.Val_1E = getJsonFloatValue(it, "val_1E", 0, constValueProtos);
+            unk.Val_20 = getJsonFloatValue(it, "val_20", 0, constValueProtos);
+            unk.Val_22 = getJsonFloatValue(it, "val_22", 0, constValueProtos);
+            unk.Val_24 = getJsonFloatValue(it, "val_24", 0, constValueProtos);
+            unk.Val_26 = getJsonFloatValue(it, "val_26", 0, constValueProtos);
+            unk.Val_28 = getJsonFloatValue(it, "val_28", 0, constValueProtos);
+            unk.Val_2A = getJsonFloatValue(it, "val_2A", 0, constValueProtos);
             unk.Val_2C = getJsonFloatValue(it,"val_2C",0,constValueProtos);
             unk.Val_2E = getJsonFloatValue(it,"val_2E",0,constValueProtos);
             unk.Val_30 = getJsonFloatValue(it,"val_30",0,constValueProtos);
-        }
-        if (unk.type == 2) {
-            unk.Val_1E = getJsonFloatValue(it,"val_1E",0,constValueProtos);
-            unk.Val_20 = getJsonFloatValue(it,"val_20",0,constValueProtos);
-            unk.Val_22 = getJsonFloatValue(it,"val_22",0,constValueProtos);
-            unk.Val_24 = getJsonFloatValue(it,"val_24",0,constValueProtos);
-            unk.Val_26 = getJsonFloatValue(it,"val_26",0,constValueProtos);
-            unk.Val_28 = getJsonFloatValue(it,"val_28",0,constValueProtos);
-            unk.Val_2A = getJsonFloatValue(it,"val_2A",0,constValueProtos);
+            break;
+        case 2:
+            unk.color0_red = getJsonFloatValue(it, "val_2", 1, constValueProtos);
+            unk.color0_green = getJsonFloatValue(it, "val_4", 1, constValueProtos);
+            unk.color0_blue = getJsonFloatValue(it, "val_6", 1, constValueProtos);
+            unk.color0_alpha = getJsonFloatValue(it, "val_8", 1, constValueProtos);
+            unk.color1_red = getJsonFloatValue(it, "val_A", 0, constValueProtos);
+            unk.color1_green = getJsonFloatValue(it, "val_C", 0, constValueProtos);
+            unk.color1_blue = getJsonFloatValue(it, "val_E", 0, constValueProtos);
+            unk.color1_alpha = getJsonFloatValue(it, "val_10", 0, constValueProtos);
+            unk.color2_red = getJsonFloatValue(it, "val_12", 0, constValueProtos);
+            unk.color2_green = getJsonFloatValue(it, "val_14", 0, constValueProtos);
+            unk.color2_blue = getJsonFloatValue(it, "val_16", 0, constValueProtos);
+            unk.color2_alpha = getJsonFloatValue(it, "val_18", 0, constValueProtos);
+            unk.Val_1A = getJsonFloatValue(it, "val_1A", 0, constValueProtos);
+            unk.Val_1C = getJsonFloatValue(it, "val_1C", 0, constValueProtos);
+            unk.Val_1E = getJsonFloatValue(it, "val_1E", 0, constValueProtos);
+            unk.Val_20 = getJsonFloatValue(it, "val_20", 0, constValueProtos);
+            unk.Val_22 = getJsonFloatValue(it, "val_22", 0, constValueProtos);
+            unk.Val_24 = getJsonFloatValue(it, "val_24", 0, constValueProtos);
+            unk.Val_26 = getJsonFloatValue(it, "val_26", 0, constValueProtos);
+            unk.Val_28 = getJsonFloatValue(it, "val_28", 0, constValueProtos);
+            unk.Val_2A = getJsonFloatValue(it, "val_2A", 0, constValueProtos);
+            break;
         }
         unknown8Prototypes.push_back(unk);
     }
@@ -480,25 +531,31 @@ void Assets::AddRuiAsset(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntrie
         unk.type = it["type"].GetInt();
         unk.transform_Index = it["transformIndex"].GetInt();
         unk.unk8Index_0 = it["unk8Index"].GetInt();
-        unk.Val_A = getJsonFloatValue(it,"val_A",0,constValueProtos);
-        unk.Val_C = getJsonFloatValue( it,"val_C",0,constValueProtos);
-        unk.Val_E = getJsonFloatValue(it,"val_E",0,constValueProtos);
-        unk.Val_10 = getJsonFloatValue(it,"val_10",0,constValueProtos);
+
         switch (unk.type) {
         case 0:
             unk.unk8Index_1 = it["unk8Index_1"].GetInt();
             unk.unk8Index_2 = it["unk8Index_2"].GetInt();
             unk.unk8Index_3 = it["unk8Index_3"].GetInt();
-            unk.Val_1E = getJsonStringValue(it,"printString","ERROR",constValueProtos,constStringsSize);
+            unk.Val_8 = getJsonStringValue(it,"printString","ERROR",constValueProtos,constStringsSize);
+            unk.Val_A = getJsonFloatValue(it,"val_A",1000000000.000000,constValueProtos);
+            unk.Val_C = getJsonFloatValue( it,"val_C",1000000000.000000,constValueProtos);
+            unk.Val_E = getJsonFloatValue(it,"val_E",0,constValueProtos);
+            unk.Val_10 = getJsonFloatValue(it,"val_10",0,constValueProtos);
+            
             unknown9Size += 0x12;
             break;
         case 1:
-            unk.Val_4 = getJsonIntValue(it,"val_4",0,constValueProtos);
-            unk.Val_6 = getJsonIntValue(it,"val_6",0,constValueProtos);
+            unk.Val_4 = getJsonIntValue(it,"val_4",2,constValueProtos);
+            unk.Val_6 = getJsonIntValue(it,"val_6",-1,constValueProtos);
             unk.Val_8 = getJsonFloatValue(it,"val_8",0,constValueProtos);
+            unk.Val_A = getJsonFloatValue(it,"val_A",0,constValueProtos);
+            unk.Val_C = getJsonFloatValue( it,"val_C",1,constValueProtos);
+            unk.Val_E = getJsonFloatValue(it,"val_E",1,constValueProtos);
+            unk.Val_10 = getJsonFloatValue(it,"val_10",0,constValueProtos);
             unk.Val_12 = getJsonFloatValue(it,"val_12",0,constValueProtos);
-            unk.Val_14 = getJsonFloatValue(it,"val_14",0,constValueProtos);
-            unk.Val_16 = getJsonFloatValue(it,"val_16",0,constValueProtos);
+            unk.Val_14 = getJsonFloatValue(it,"val_14",1,constValueProtos);
+            unk.Val_16 = getJsonFloatValue(it,"val_16",1,constValueProtos);
             unk.Val_18 = getJsonFloatValue(it,"val_18",0,constValueProtos);
             unk.Val_1A = getJsonFloatValue(it,"val_1A",0,constValueProtos);
             unk.Val_1C = getJsonFloatValue( it,"val_1C",0,constValueProtos);
@@ -506,16 +563,24 @@ void Assets::AddRuiAsset(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntrie
             unk.Val_20 = getJsonFloatValue(it,"val_20",0,constValueProtos);
             unk.Val_22 = getJsonFloatValue(it,"val_22",0,constValueProtos);
             unk.Val_24 = getJsonFloatValue( it,"val_24",0,constValueProtos);
-            unk.word = it["word"].GetInt();
+            unk.word = 0x1000;
+            if(it.HasMember("word")&&it["word"].IsInt())
+                unk.word = it["word"].GetInt();
             unknown9Size += 0x2A;
             break;
         case 2:
             unk.Val_4 = getJsonIntValue(it,"val_4",0,constValueProtos);
             unk.Val_6 = getJsonFloatValue(it,"val_6",0,constValueProtos);
             unk.Val_8 = getJsonFloatValue(it,"val_8",0,constValueProtos);
-            unk.Val_12 = getJsonFloatValue(it,"val_12",0,constValueProtos);
-            unk.Val_14 = getJsonFloatValue(it,"val_14",0,constValueProtos);
-            unk.word = it["word"].GetInt();
+            unk.Val_A = getJsonFloatValue(it,"val_A",1,constValueProtos);
+            unk.Val_C = getJsonFloatValue( it,"val_C",1,constValueProtos);
+            unk.Val_E = getJsonFloatValue(it,"val_E",0,constValueProtos);
+            unk.Val_10 = getJsonFloatValue(it,"val_10",0,constValueProtos);
+            unk.Val_12 = getJsonFloatValue(it,"val_12",1,constValueProtos);
+            unk.Val_14 = getJsonFloatValue(it,"val_14",1,constValueProtos);
+            unk.word = 0x2000;
+            if(it.HasMember("word")&&it["word"].IsInt())
+                unk.word = it["word"].GetInt();
             unknown9Size += 0x1A;
             break;
         }
@@ -799,25 +864,22 @@ void Assets::AddRuiAsset(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntrie
     }
     for (auto& unk : unknown8Prototypes) {
 
-
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_2);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_4);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_6);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_8);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_A);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_C);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_E);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_10);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_12);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_14);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_16);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_18);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_1A);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_1C);
-
-
-
-        if(unk.type == 0) { //is font
+        switch(unk.type){
+        case 0:  //is font
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color0_red);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color0_green);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color0_blue);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color0_alpha);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color1_red);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color1_green);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color1_blue);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color1_alpha);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color2_red);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color2_green);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color2_blue);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color2_alpha);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_1A);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_1C);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_20);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_22);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_24);
@@ -828,8 +890,38 @@ void Assets::AddRuiAsset(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntrie
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_2E);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_30);
 
-        }
-        if (unk.type == 2) {
+            break;
+        case 1:
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color0_red);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color0_green);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color0_blue);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color0_alpha);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color1_red);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color1_green);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color1_blue);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color1_alpha);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color2_red);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color2_green);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color2_blue);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color2_alpha);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_1A);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_1C);
+            break;
+        case 2: 
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color0_red);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color0_green);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color0_blue);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color0_alpha);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color1_red);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color1_green);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color1_blue);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color1_alpha);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color2_red);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color2_green);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color2_blue);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.color2_alpha);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_1A);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_1C);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_1E);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_20);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_22);
@@ -841,15 +933,22 @@ void Assets::AddRuiAsset(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntrie
 
     }
     for (auto& unk : unknown9Prototypes) {
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_A);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_C);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_E);
-        setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_10);
         switch (unk.type) {
+        case 0:
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_8);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_A);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_C);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_E);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_10);
+            break;
         case 1:
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_4);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_6);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_8);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_A);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_C);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_E);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_10);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_12);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_14);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_16);
@@ -866,6 +965,10 @@ void Assets::AddRuiAsset(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntrie
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_4);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_6);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_8);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_A);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_C);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_E);
+            setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_10);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_12);
             setDynamicOffset(argumentPrototypes,dynamicValuePrototypes,dynamicValuesSize,constsSize + argsSize,unk.Val_14);
             break;
@@ -876,20 +979,22 @@ void Assets::AddRuiAsset(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntrie
     unknown8dataStruct* unknown8Buf = (unknown8dataStruct*)malloc(sizeof(unknown8dataStruct)* unknown8Prototypes.size());
     memset(unknown8Buf,0,sizeof(unknown8dataStruct)* unknown8Prototypes.size());
     int i = 0;
+
+    
     for (auto& proto : unknown8Prototypes) {
         unknown8Buf[i].type = proto.type;
-        unknown8Buf[i].word_2 = proto.Val_2.offset;
-        unknown8Buf[i].word_4 = proto.Val_4.offset;
-        unknown8Buf[i].word_6 = proto.Val_6.offset;
-        unknown8Buf[i].word_8 = proto.Val_8.offset;
-        unknown8Buf[i].word_A = proto.Val_A.offset;
-        unknown8Buf[i].word_C = proto.Val_C.offset;
-        unknown8Buf[i].word_E = proto.Val_E.offset;
-        unknown8Buf[i].word_10 = proto.Val_10.offset;
-        unknown8Buf[i].word_12 = proto.Val_12.offset;
-        unknown8Buf[i].word_14 = proto.Val_14.offset;
-        unknown8Buf[i].word_16 = proto.Val_16.offset;
-        unknown8Buf[i].word_18 = proto.Val_18.offset;
+        unknown8Buf[i].word_2 = proto.color0_red.offset;
+        unknown8Buf[i].word_4 = proto.color0_green.offset;
+        unknown8Buf[i].word_6 = proto.color0_blue.offset;
+        unknown8Buf[i].word_8 = proto.color0_alpha.offset;
+        unknown8Buf[i].word_A = proto.color1_red.offset;
+        unknown8Buf[i].word_C = proto.color1_green.offset;
+        unknown8Buf[i].word_E = proto.color1_blue.offset;
+        unknown8Buf[i].word_10 = proto.color1_alpha.offset;
+        unknown8Buf[i].word_12 = proto.color2_red.offset;
+        unknown8Buf[i].word_14 = proto.color2_green.offset;
+        unknown8Buf[i].word_16 = proto.color2_blue.offset;
+        unknown8Buf[i].word_18 = proto.color2_alpha.offset;
         unknown8Buf[i].word_1A = proto.Val_1A.offset;
         unknown8Buf[i].word_1C = proto.Val_1C.offset;
         unknown8Buf[i].word_1E = proto.Val_1E.offset;
@@ -904,6 +1009,7 @@ void Assets::AddRuiAsset(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntrie
         unknown8Buf[i].word_30 = proto.Val_30.offset;
         if(proto.type == 0)//is font
             unknown8Buf[i].word_1E = proto.fontIndex;
+        i++;
 
     }
     char* unknown9Buf = new char[unknown9Size];
@@ -913,6 +1019,7 @@ void Assets::AddRuiAsset(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntrie
         switch (proto.type) {
         case 0: {
             unknown9dataStruct_0* unk9 = (unknown9dataStruct_0*) &unknown9Buf[unknown9Offset];
+            Log("Unk9 Text Offset %lld\n",unknown9Offset);
             unknown9Offset += 0x12;
             unk9->type = proto.type;
             unk9->transformIndex = proto.transform_Index;
@@ -929,6 +1036,7 @@ void Assets::AddRuiAsset(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntrie
         } 
         case 1: {
             unknown9dataStruct_1* unk9 = (unknown9dataStruct_1*) &unknown9Buf[unknown9Offset];
+            
             unknown9Offset += 0x2A;
             unk9->type = proto.type;
             unk9->transformIndex = proto.transform_Index;
@@ -1307,8 +1415,8 @@ void Assets::AddRuiAsset(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntrie
     // add the asset entry
     assetEntries->push_back(asset);
     std::map<RuiArgumentType_t, const char*> argTypeName{
-        {TYPE_STRING,"char*"},
-        {TYPE_ASSET,"char*"},
+        {TYPE_STRING,"const char*"},
+        {TYPE_ASSET,"const char*"},
         {TYPE_BOOL,"int"},
         {TYPE_INT,"int"},
         {TYPE_FLOAT,"float"},
@@ -1317,7 +1425,7 @@ void Assets::AddRuiAsset(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntrie
         {TYPE_COLOR_ALPHA,"float"},
         {TYPE_GAMETIME,"float"},
         {TYPE_WALLTIME,"float"},
-        {TYPE_UIHANDLE,"char*"},
+        {TYPE_UIHANDLE,"const char*"},
     };
     size_t cppStructOffset = 0;
     std::string cppStruct = std::string("__unaligned struct data_") + name + "{\n";
@@ -1357,7 +1465,7 @@ void Assets::AddRuiAsset(CPakFile* pak, std::vector<RPakAssetEntry>* assetEntrie
         if (proto.offset > cppStructOffset) {
             //ADD gap;
             char constGapBuffer[1024];
-            sprintf_s(constGapBuffer,"\tBYTE gap_%llx[%lld];\n",cppStructOffset,proto.offset-cppStructOffset);
+            sprintf_s(constGapBuffer,"\tBYTE gap_%llX[%lld];\n",cppStructOffset,proto.offset-cppStructOffset);
             cppStructOffset = proto.offset;
             cppStruct += constGapBuffer;
         }

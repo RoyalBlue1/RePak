@@ -10,7 +10,7 @@
          "path":"test_rui.rui",
          "width":1920,
          "height":1080,
-         "unk6": 4,
+         "unk6": 5,
          "args":[
             {
                "name":"isGrappleInRange",
@@ -69,10 +69,17 @@
                "data":[
                   {
                      "transformIndex":2,
-                     "val_0_name":"crosshairMovementX_val",
-                     "val_1_name":"crosshairMovementY_val",
+                     "val_0_name":"crosshairPositionX",
+                     "val_1_name":"crosshairPositionY",
                      "val_2":0.5,
                      "val_3":0.5
+                  },
+                  {
+                    "transformIndex":2,
+                    "val_0":0.5,
+                    "val_1":0.7,
+                    "val_2":0.5,
+                    "val_3":0.7
                   }
                ]
             },
@@ -81,30 +88,98 @@
                "data":[
                   {
                      "transformIndex":3,
-                     "rotation":0,
+                     "rotation_name":"rotation",
                      "centerY":0.5,
                      "centerX":0.5
                   }
                ]
             }
          ],
-         "unk8":[
+         "styleDescriptors":[
             {
-               "type":1,
-               "val_2_name":"crosshair_red",
-               "val_4_name":"crosshair_green",
-               "val_6_name":"crosshair_blue",
-               "val_8_name":"crosshair_alpha",
-               "val_A":0.0,
-               "val_C":0.0,
-               "val_E":0.0,
-               "val_10":0.0,
-               "val_12":1.0,
-               "val_14":1.0,
-               "val_16":1.0,
-               "val_18":1.0,
-               "val_1A":1.0,
-               "val_1C":0
+                "type":1,
+                "val_2_name":"crosshair_red",
+                "val_4_name":"crosshair_green",
+                "val_6_name":"crosshair_blue",
+                "val_8_name":"crosshair_alpha",
+                "val_A_name":"color3_red",
+                "val_C_name":"color3_green",
+                "val_E_name":"color3_blue",
+                "val_10_name":"color3_alpha",
+                "val_12_name":"color4_red",
+                "val_14_name":"color4_green",
+                "val_16_name":"color4_blue",
+                "val_18_name":"color4_alpha",
+                "val_1A_name":"val1A_D",
+                "val_1C_name":"val1C_D",
+                "val_1E_name":"val1E_D",
+                "val_20_name":"val20_D",
+                "val_22_name":"val22_D",
+                "val_24_name":"val24_D",
+                "val_26_name":"val26_D",
+                "val_28_name":"val28_D",
+                "val_2A_name":"val2A_D",
+                "val_2C_name":"val2C_D",
+                "val_2E_name":"val2E_D",
+                "val_30_name":"val30_D"
+            },
+            {
+                "type":0,
+                "color0Red":1.0,
+                "color0Green":0,
+                "color0Blue":0,
+                "color0Alpha":1,
+                "color1Red":0.0,
+                "color1Green":0,
+                "color1Blue":1,
+                "color1Alpha":1,
+                "color2Red":0.0,
+                "color2Green":0,
+                "color2Blue":0,
+                "color2Alpha":0,
+                "fontIndex" : 9,
+                "textSize":100.0,
+                "stretchX":1,
+                "backgroundSize":10,
+                "boltness":0,
+                "blur":0,
+                "val_1A":1,
+                "val_1C":1,
+                "val_20":0,
+                "val_22":0,
+                "val_24":0,
+                "val_26":0
+
+
+            },
+            {
+                "type":0,
+                "color0Red":0.0,
+                "color0Green":1,
+                "color0Blue":1,
+                "color0Alpha":1,
+                "color1Red":0.0,
+                "color1Green":1,
+                "color1Blue":0,
+                "color1Alpha":1,
+                "color2Red":0.0,
+                "color2Green":0,
+                "color2Blue":0,
+                "color2Alpha":0,
+                "fontIndex" : 9,
+                "textSize":100.0,
+                "stretchX":1,
+                "backgroundSize":10,
+                "boltness":0,
+                "blur":0,
+                "val_1A":1,
+                "val_1C":1,
+                "val_20":0,
+                "val_22":0,
+                "val_24":0,
+                "val_26":0
+
+
             }
          ],
          "unk9":[
@@ -114,23 +189,18 @@
                "transformIndex":3,
                "val_4_name":"crosshair_index",
                "val_6":-1,
-               "val_8_name":"val_8",
-               "val_A_name":"val_A",
-               "val_C_name":"val_C",
-               "val_E_name":"val_E",
-               "val_10_name":"val_10",
-               "val_12_name":"val_12",
-               "val_14_name":"val_14",
-               "val_16_name":"val_16",
-               "val_18_name":"val_18",
-               "val_1A_name":"val_1A",
-               "val_1C_name":"val_1C",
-               "val_1E_name":"val_1E",
-               "val_20_name":"val_20",
-               "val_22_name":"val_22",
-               "val_24_name":"val_24",
                "word":4096
-            }
+            },
+            {
+                "type":0,
+                "transformIndex":4,
+                "unk8Index":1,
+                "unk8Index_1":2,
+                "unk8Index_2":1,
+                "unk8Index_3":1,
+                "printString_name":"textOut"
+
+            }   
          ]
       }
    ]

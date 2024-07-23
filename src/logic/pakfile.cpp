@@ -53,6 +53,7 @@ void CPakFile::AddAsset(rapidjson::Value& file)
 	AddJSONAsset("shds", file, Assets::AddShaderSetAsset_v8, Assets::AddShaderSetAsset_v11);
 	AddJSONAsset("shdr", file, Assets::AddShaderAsset_v8, Assets::AddShaderAsset_v12);
 
+	AddJSONAsset("rui",file,Assets::AddRuiAsset_v30,nullptr);
 }
 
 //-----------------------------------------------------------------------------

@@ -18,6 +18,7 @@
     <ClCompile Include="assets\material.cpp" />
     <ClCompile Include="assets\model.cpp" />
     <ClCompile Include="assets\patch.cpp" />
+    <ClCompile Include="assets\rui.cpp" />
     <ClCompile Include="assets\shader.cpp" />
     <ClCompile Include="assets\shaderset.cpp" />
     <ClCompile Include="assets\uiatlas.cpp" />
@@ -47,6 +48,7 @@
     <ClInclude Include="public\materialflags.h" />
     <ClInclude Include="public\multishader.h" />
     <ClInclude Include="public\rpak.h" />
+    <ClInclude Include="public\rui.h" />
     <ClInclude Include="public\shader.h" />
     <ClInclude Include="public\shaderset.h" />
     <ClInclude Include="public\starpak.h" />

@@ -207,6 +207,10 @@ public:
 	void WriteMemPageHeaders(BinaryIO& out);
 	void WritePakDescriptors(BinaryIO& out);
 
+	void SetPakFlag(int flag) {
+		*(short*)m_Header.flags |= flag;
+	}
+
 	//----------------------------------------------------------------------------
 	// starpak
 	//----------------------------------------------------------------------------
